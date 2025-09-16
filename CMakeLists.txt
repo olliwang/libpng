@@ -29,8 +29,8 @@ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 
 include("cmake/HunterGate.cmake")
 HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.26.1.tar.gz"
-    SHA1 "e41ac7a18c49b35ebac99ff2b5244317b2638a65"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.26.4.tar.gz"
+    SHA1 "cbce5a86d4b2295c48552ccf60544158bf8e577f"
 )
 
 project(PNG
