@@ -19,8 +19,8 @@
 # For conditions of distribution and use, see the disclaimer
 # and license in png.h
 
-cmake_minimum_required(VERSION 3.1)
-cmake_policy(VERSION 3.1)
+cmake_minimum_required(VERSION 3.11)
+cmake_policy(VERSION 3.11)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
 
 include("cmake/HunterGate.cmake")
