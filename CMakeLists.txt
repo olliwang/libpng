@@ -43,9 +43,6 @@ include(GNUInstallDirs)
 
 set(TARGET_NAME png)
 
-hunter_add_package(ZLIB)
-find_package(ZLIB CONFIG REQUIRED)
-
 # Allow the users to specify an application-specific API prefix for libpng
 # vendoring purposes. A standard libpng build should have no such prefix.
 set(PNG_PREFIX
@@ -138,7 +135,8 @@ endif()
 message(STATUS "Building for target architecture: ${PNG_TARGET_ARCHITECTURE}")
 
 # Find the zlib library.
-find_package(ZLIB REQUIRED)
+hunter_add_package(ZLIB)
+find_package(ZLIB CONFIG REQUIRED)
 set(PNG_LINK_LIBRARIES ZLIB::ZLIB)
 
 # Find the math library (unless we already know it's not available or
