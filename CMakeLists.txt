@@ -901,7 +901,7 @@ if(PNG_TESTS)
                FILES ${PNGSUITE_PNGS})
 endif()
 
-if(BUILD_SHARED_LIBS)
+if(PNG_TOOLS)
   add_executable(pngfix ${pngfix_sources})
   target_link_libraries(pngfix
                         PRIVATE png ZLIB::zlib ${M_LIBRARY})
