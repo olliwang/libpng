@@ -43,13 +43,6 @@ include(GNUInstallDirs)
 
 set(TARGET_NAME png)
 
-if(${CMAKE_MAJOR_VERSION} GREATER 3 OR
-    (${CMAKE_MAJOR_VERSION} EQUAL 3 AND ${CMAKE_MINOR_VERSION} GREATER_EQUAL 12))
-  # For CMake >= 3.12, find_package(<PackageName>) searches prefixes given by
-  # <PackageName>_ROOT CMake variable and <PackageName>_ROOT
-  # environment variable.
-  cmake_policy(SET CMP0074 NEW)
-endif()
 hunter_add_package(ZLIB)
 find_package(ZLIB CONFIG REQUIRED)
 
