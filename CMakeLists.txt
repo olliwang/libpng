@@ -1047,13 +1047,6 @@ write_basic_package_version_file(
     "${version_config}" COMPATIBILITY SameMajorVersion
 )
 
-# Note: variable 'targets_export_name' used
-configure_package_config_file(
-      "cmake/Config.cmake.in"
-      "${project_config}"
-      INSTALL_DESTINATION "${config_install_dir}"
-  )
-
 install(
     TARGETS ${PNG_LIBRARY_TARGETS}
     EXPORT "${targets_export_name}"
