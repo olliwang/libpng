@@ -41,7 +41,7 @@ include(CheckCSourceCompiles)
 include(CheckLibraryExists)
 include(GNUInstallDirs)
 
-set(TARGET_NAME png)
+set(TARGET_NAME "png")
 
 # Allow the users to specify an application-specific API prefix for libpng
 # vendoring purposes. A standard libpng build should have no such prefix.
@@ -82,8 +82,10 @@ if((NOT DFA_XTRA STREQUAL "") AND (NOT PNG_LIBCONF_HEADER STREQUAL ""))
 endif()
 
 # Allow the users to switch on/off various library build types.
+option(PNG_SHARED "Build libpng as a shared library" OFF)
+option(PNG_STATIC "Build libpng as a static library" ON)
 if(APPLE)
-  option(PNG_FRAMEWORK "Build libpng as a framework bundle" OFF)
+  option(PNG_FRAMEWORK "Build libpng as a framework bundle" ON)
 else()
   option(PNG_FRAMEWORK "Build libpng as a framework bundle (not available on this platform)" OFF)
 endif()
@@ -662,13 +664,61 @@ else()
   set(PNG_STATIC_OUTPUT_NAME "libpng${PNGLIB_ABI_VERSION}_static")
 endif()
 
-add_library(${TARGET_NAME} ${libpng_sources})
-add_dependencies(${TARGET_NAME} png_genfiles)
+if(PNG_SHARED)
+  add_library(png_shared SHARED ${libpng_sources})
+  add_dependencies(png_shared png_genfiles)
+  list(APPEND PNG_LIBRARY_TARGETS png_shared)
+  set_target_properties(png_shared
+                        PROPERTIES OUTPUT_NAME "${PNG_SHARED_OUTPUT_NAME}"
+                                   DEBUG_POSTFIX "${PNG_DEBUG_POSTFIX}"
+                                   VERSION "${PNGLIB_SHARED_VERSION}"
+                                   SOVERSION "${PNGLIB_ABI_VERSION}")
+  if(UNIX AND AWK)
+    if(HAVE_LD_VERSION_SCRIPT)
+      set_target_properties(png_shared
+                            PROPERTIES LINK_FLAGS "-Wl,--version-script='${CMAKE_CURRENT_BINARY_DIR}/libpng.vers'")
+    elseif(HAVE_SOLARIS_LD_VERSION_SCRIPT)
+      set_target_properties(png_shared
+                            PROPERTIES LINK_FLAGS "-Wl,-M -Wl,'${CMAKE_CURRENT_BINARY_DIR}/libpng.vers'")
+    endif()
+  endif()
+  if(APPLE)
+    # Avoid CMake's implicit compile definition "png_shared_EXPORTS".
+    set_target_properties(png_shared
+                          PROPERTIES DEFINE_SYMBOL "")
+  elseif(WIN32)
+    # Use the explicit compile definition "PNG_BUILD_DLL" for Windows DLLs.
+    set_target_properties(png_shared
+                          PROPERTIES DEFINE_SYMBOL PNG_BUILD_DLL)
+  endif()
+  target_include_directories(png_shared
+                             PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+  target_include_directories(png_shared
+                             PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
+  target_include_directories(png_shared
+                             SYSTEM
+                             INTERFACE "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libpng${PNGLIB_ABI_VERSION}>")
+  target_link_libraries(png_shared
+                        PUBLIC ${PNG_LINK_LIBRARIES})
+endif()
 
-target_include_directories(${TARGET_NAME} PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-)
+if(PNG_STATIC)
+  add_library(${TARGET_NAME} STATIC ${libpng_sources})
+  add_dependencies(${TARGET_NAME} png_genfiles)
+  list(APPEND PNG_LIBRARY_TARGETS ${TARGET_NAME})
+  set_target_properties(${TARGET_NAME}
+                        PROPERTIES OUTPUT_NAME "${PNG_STATIC_OUTPUT_NAME}"
+                                   DEBUG_POSTFIX "${PNG_DEBUG_POSTFIX}")
+  target_include_directories(${TARGET_NAME}
+                             PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+  target_include_directories(${TARGET_NAME}
+                             PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
+  # target_include_directories(${TARGET_NAME}
+  #                            SYSTEM
+  #                            INTERFACE "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libpng${PNGLIB_ABI_VERSION}>")
+  target_link_libraries(${TARGET_NAME}
+                        PUBLIC ${PNG_LINK_LIBRARIES})
+endif()
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
   # ExitProcess not available
@@ -708,14 +758,16 @@ if(PNG_FRAMEWORK)
                              SYSTEM
                              INTERFACE "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libpng${PNGLIB_ABI_VERSION}>")
   target_link_libraries(png_framework
-                        PRIVATE ZLIB::zlib ${PNG_LINK_LIBRARIES})
+                        PUBLIC ${PNG_LINK_LIBRARIES})
 endif()
 
-target_link_libraries(${TARGET_NAME} PRIVATE ZLIB::zlib ${PNG_LINK_LIBRARIES})
+if(NOT PNG_LIBRARY_TARGETS)
+  message(SEND_ERROR "No library variant selected to build. "
+                     "Please enable at least one of the following options: "
+                     "PNG_SHARED, PNG_STATIC, PNG_FRAMEWORK")
+endif()
 
-target_compile_definitions(${TARGET_NAME} PUBLIC "$<$<CONFIG:Debug>:PNG_DEBUG>")
-
-if(PNG_TESTS)
+if(PNG_TESTS AND PNG_SHARED)
   enable_testing()
 
   # Include the internal module PNGTest.cmake
@@ -734,7 +786,7 @@ if(PNG_TESTS)
 
   add_executable(pngtest ${pngtest_sources})
   target_link_libraries(pngtest
-                        PRIVATE ${TARGET_NAME} ZLIB::zlib)
+                        PRIVATE png_shared)
 
   png_add_test(NAME pngtest
                COMMAND pngtest
@@ -746,7 +798,7 @@ if(PNG_TESTS)
 
   add_executable(pngvalid ${pngvalid_sources})
   target_link_libraries(pngvalid
-                        PRIVATE ${TARGET_NAME} ZLIB::zlib)
+                        PRIVATE png_shared)
 
   png_add_test(NAME pngvalid-gamma-16-to-8
                COMMAND pngvalid
@@ -793,7 +845,7 @@ if(PNG_TESTS)
 
   add_executable(pngstest ${pngstest_sources})
   target_link_libraries(pngstest
-                        PRIVATE ${TARGET_NAME})
+                        PRIVATE png_shared)
 
   foreach(gamma_type 1.8 linear none sRGB)
     foreach(alpha_type none alpha)
@@ -849,7 +901,7 @@ if(PNG_TESTS)
 
   add_executable(pngunknown ${pngunknown_sources})
   target_link_libraries(pngunknown
-                        PRIVATE ${TARGET_NAME})
+                        PRIVATE png_shared)
 
   png_add_test(NAME pngunknown-discard
                COMMAND pngunknown
@@ -883,7 +935,7 @@ if(PNG_TESTS)
 
   add_executable(pngimage ${pngimage_sources})
   target_link_libraries(pngimage
-                        PRIVATE ${TARGET_NAME})
+                        PRIVATE png_shared)
 
   png_add_test(NAME pngimage-quick
                COMMAND pngimage
@@ -895,10 +947,10 @@ if(PNG_TESTS)
                FILES ${PNGSUITE_PNGS})
 endif()
 
-if(PNG_TOOLS)
+if(PNG_SHARED AND PNG_TOOLS)
   add_executable(pngfix ${pngfix_sources})
   target_link_libraries(pngfix
-                        PRIVATE ${TARGET_NAME} ZLIB::zlib)
+                        PRIVATE png_shared)
   set(PNG_BIN_TARGETS pngfix)
 
   add_executable(png-fix-itxt ${png_fix_itxt_sources})
@@ -1003,10 +1055,11 @@ configure_package_config_file(
   )
 
 install(
-    TARGETS ${TARGET_NAME}
+    TARGETS ${PNG_LIBRARY_TARGETS}
     EXPORT "${targets_export_name}"
     LIBRARY DESTINATION "lib"
     ARCHIVE DESTINATION "lib"
+    FRAMEWORK DESTINATION "lib"
     RUNTIME DESTINATION "bin"
     INCLUDES DESTINATION "${include_install_dir}"
 )
