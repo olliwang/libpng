@@ -141,12 +141,8 @@ set(PNG_LINK_LIBRARIES ZLIB::ZLIB)
 
 # Find the math library (unless we already know it's not available or
 # not needed).
-set(M_LIBRARY "")
 if(UNIX AND NOT (APPLE OR BEOS OR HAIKU OR EMSCRIPTEN))
   check_library_exists(m pow "" PNG_HAVE_LIBM_POW)
-  if(LIB_M_REQUIRED)
-    set(M_LIBRARY m)
-  endif()
 endif()
 if(PNG_HAVE_LIBM_POW)
   list(APPEND PNG_LINK_LIBRARIES m)
@@ -712,10 +708,10 @@ if(PNG_FRAMEWORK)
                              SYSTEM
                              INTERFACE "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libpng${PNGLIB_ABI_VERSION}>")
   target_link_libraries(png_framework
-                        PRIVATE ZLIB::zlib ${M_LIBRARY})
+                        PRIVATE ZLIB::zlib ${PNG_LINK_LIBRARIES})
 endif()
 
-target_link_libraries(${TARGET_NAME} PRIVATE ZLIB::zlib ${M_LIBRARY})
+target_link_libraries(${TARGET_NAME} PRIVATE ZLIB::zlib ${PNG_LINK_LIBRARIES})
 
 target_compile_definitions(${TARGET_NAME} PUBLIC "$<$<CONFIG:Debug>:PNG_DEBUG>")
 
@@ -738,7 +734,7 @@ if(PNG_TESTS)
 
   add_executable(pngtest ${pngtest_sources})
   target_link_libraries(pngtest
-                        PRIVATE png ZLIB::zlib ${M_LIBRARY})
+                        PRIVATE ${TARGET_NAME} ZLIB::zlib)
 
   png_add_test(NAME pngtest
                COMMAND pngtest
@@ -750,7 +746,7 @@ if(PNG_TESTS)
 
   add_executable(pngvalid ${pngvalid_sources})
   target_link_libraries(pngvalid
-                        PRIVATE ZLIB::zlib ${M_LIBRARY})
+                        PRIVATE ${TARGET_NAME} ZLIB::zlib)
 
   png_add_test(NAME pngvalid-gamma-16-to-8
                COMMAND pngvalid
@@ -797,7 +793,7 @@ if(PNG_TESTS)
 
   add_executable(pngstest ${pngstest_sources})
   target_link_libraries(pngstest
-                        PRIVATE ${M_LIBRARY})
+                        PRIVATE ${TARGET_NAME})
 
   foreach(gamma_type 1.8 linear none sRGB)
     foreach(alpha_type none alpha)
@@ -902,7 +898,7 @@ endif()
 if(PNG_TOOLS)
   add_executable(pngfix ${pngfix_sources})
   target_link_libraries(pngfix
-                        PRIVATE png ZLIB::zlib ${M_LIBRARY})
+                        PRIVATE ${TARGET_NAME} ZLIB::zlib)
   set(PNG_BIN_TARGETS pngfix)
 
   add_executable(png-fix-itxt ${png_fix_itxt_sources})
