@@ -666,8 +666,6 @@ else()
   set(PNG_STATIC_OUTPUT_NAME "libpng${PNGLIB_ABI_VERSION}_static")
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 add_library(${TARGET_NAME} ${libpng_sources})
 add_dependencies(${TARGET_NAME} png_genfiles)
 
